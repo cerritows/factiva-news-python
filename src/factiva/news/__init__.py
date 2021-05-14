@@ -1,8 +1,10 @@
-__all__ = ['snapshot', 'stream', 'bulknews']
+__all__ = ['snapshot', 'stream', 'bulknews', 'taxonomy']
 
 import os
 import pandas as pd
 import fastavro
+
+from factiva.news.taxonomy.taxonomy import Taxonomy
 
 
 _ARTICLES_STAT_FIELDS = ['an', 'company_codes', 'company_codes_about',
@@ -16,6 +18,7 @@ _ARTICLES_STAT_FIELDS = ['an', 'company_codes', 'company_codes_about',
                          ]
 
 _ARTICLE_DELETE_FIELDS = ['art', 'credit', 'document_type']
+
 
 
 def read_snapshot_file(self, filepath, only_stats=True, merge_body=True) -> pd.DataFrame:

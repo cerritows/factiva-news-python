@@ -25,7 +25,7 @@ class Taxonomy():
 
     categories = []
 
-    def __init__(self, api_user: None, request_userinfo = False):
+    def __init__(self, api_user = None, request_userinfo = False):
         self.api_user = APIKeyUser.create_api_user(api_user, request_userinfo)
         self.categories = self.get_categories()
 
