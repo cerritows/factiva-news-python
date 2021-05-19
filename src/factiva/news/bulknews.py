@@ -302,8 +302,7 @@ class BulkNewsJob(object):
         if response.status_code == 200:
             response_data = response.json()
             self.job_state = response_data['data']['attributes']['current_state']
-            # TODO_REPLACE THIS WITH A CONSTANT
-            if self.job_state == 'JOB_STATE_DONE':
+            if self.job_state == const.API_JOB_DONE_STATE:
                 self.set_job_data(response_data)
         elif response.status_code == 404:
             raise RuntimeError('Job ID does not exist.')
@@ -335,10 +334,10 @@ class BulkNewsJob(object):
         self.submit_job(payload=payload)
         self.get_job_results()
         
-        while self.job_state != 'JOB_STATE_DONE':
+        while self.job_state != const.API_JOB_DONE_STATE:
             if self.job_state not in const.API_JOB_EXPECTED_STATES:
                 raise RuntimeError('Unexpected job state')
-            if self.job_state == 'JOB_STATE_FAILED':
+            if self.job_state == const.API_JOB_FAILED_STATE:
                 raise Exception('Job failed')
 
             time.sleep(const.API_JOB_ACTIVE_WAIT_SPACING)    

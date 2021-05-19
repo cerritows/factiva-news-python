@@ -1,5 +1,5 @@
+from factiva.core import const
 from factiva.news.bulknews import BulkNewsQuery
-
 
 class SnapshotQuery(BulkNewsQuery):
 
@@ -17,9 +17,9 @@ class SnapshotQuery(BulkNewsQuery):
         excludes=None,
         select_fields=None,
         limit=0,
-        file_format="avro",
-        frequency="MONTH",
-        date_field="publication_datetime",
+        file_format=const.API_AVRO_FORMAT,
+        frequency=const.API_MONTH_PERIOD,
+        date_field=const.API_PUBLICATION_DATETIME_FIELD,
         group_by_source_code=False,
         top=10
     ):
@@ -35,24 +35,24 @@ class SnapshotQuery(BulkNewsQuery):
 
         if type(file_format) == str:
             file_format = file_format.lower().strip()
-            if file_format not in ['avro', 'json', 'csv']:
-                raise ValueError('Value of file_format is not within the allowed options: avro, json, csv')
+            if file_format not in const.API_EXTRACTION_FILE_FORMATS:
+                raise ValueError(f'Value of file_format is not within the allowed options: {const.API_EXTRACTION_FILE_FORMATS}')
             self.file_format = file_format
         else:
             raise ValueError("Unexpected value for file_format")
 
         if type(frequency) == str:
             frequency = frequency.upper().strip()
-            if frequency not in ['DAY', 'MONTH', 'YEAR']:
-                raise ValueError('Value of frequency is not within the allowed options: DAY, MONTH, YEAR')
+            if frequency not in const.API_DATETIME_PERIODS:
+                raise ValueError(f'Value of frequency is not within the allowed options: {const.API_DATETIME_PERIODS}')
             self.frequency = frequency
         else:
             raise ValueError("Unexpected value for frequency")
 
         if type(date_field) == str:
             date_field = date_field.lower().strip()
-            if date_field not in ['publication_datetime', 'modification_datetime', 'ingestion_datetime']:
-                raise ValueError('Value of date_field is not within the allowed options: publication_datetime, modification_datetime, ingestion_datetime')
+            if date_field not in const.API_DATETIME_FIELDS:
+                raise ValueError(f'Value of date_field is not within the allowed options: {const.API_DATETIME_FIELDS}')
             self.date_field = date_field
         else:
             raise ValueError("Unexpected value for date_field")
