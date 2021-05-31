@@ -1,5 +1,3 @@
-from factiva.news import BulkNewsBase
+__all__ = ['stream']
 
-
-class Stream(BulkNewsBase):
-    pass
+from .Stream import Stream
