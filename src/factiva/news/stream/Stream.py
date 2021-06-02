@@ -77,10 +77,7 @@ class Stream:
         query='',
         stream_user=None,
         api_user=None,
-        request_info=False,
-        user_id=None,
-        client_id=None,
-        password=None
+        request_info=False
     ):
         self.stream_id = stream_id
         self.snapshot_id = snapshot_id
@@ -91,9 +88,6 @@ class Stream:
             self.stream_user = StreamUser(
                 api_key=api_user,
                 request_info=request_info,
-                user_id=user_id,
-                client_id=client_id,
-                password=password
             )
         if not self.stream_user:
             raise RuntimeError('Undefined Stream User')
