@@ -304,7 +304,8 @@ class Stream:
         callback=None,
         subscription_id=None,
         maximum_messages=None,
-        batch_size=None
+        batch_size=None,
+        ack_enabled=False,
     ):
         '''
         Consume messages is a listener function
@@ -317,11 +318,13 @@ class Stream:
             is used for processing a message
         subscription_id :  str
             is used for connecting to pubsub
-        maximum_messages: int
+        maximum_messages : int
             is used for consuming a specific
             number of messages
-        batch_size: int
+        batch_size : int
             the limit of the batch expected
+        ack_enabled :  boolean
+            is used for acknowledging a message
 
         Raises
         -------
@@ -332,10 +335,16 @@ class Stream:
         self.subscriptions[subscription_id].consume_messages(
             callback=callback,
             maximum_messages=maximum_messages,
-            batch_size=batch_size
+            batch_size=batch_size,
+            ack_enabled=ack_enabled,
             )
 
-    def consume_async_messages(self, callback=None, subscription_id=None):
+    def consume_async_messages(
+        self,
+        callback=None,
+        subscription_id=None,
+        ack_enabled=False
+    ):
         '''
         Consume messages is a listener function
         which consumes the current messages (News)
@@ -347,6 +356,8 @@ class Stream:
             is used for processing a message
         subscription_id :  str
             is used for connecting to pubsub
+        ack_enabled :  boolean
+            is used for acknowledging a message
 
         Raises
         -------
@@ -356,6 +367,7 @@ class Stream:
             raise const.INVALID_SUBSCRIPTION_ID_ERROR
         self.subscriptions[subscription_id].consume_async_messages(
             callback=callback,
+            ack_enabled=ack_enabled,
             )
 
     def _create_by_snapshot_id(self):

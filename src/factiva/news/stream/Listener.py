@@ -69,6 +69,7 @@ class Listener:
     """
 
     _check_exceeds_thread = None
+    FIRST_OBJECT = 0
 
     def __init__(self, subscription_id=None, stream_user=None):
         if not subscription_id:
@@ -76,15 +77,21 @@ class Listener:
         self.stream_user = stream_user
         self.subscription_id = subscription_id
         self.is_consuming = True
+        self.limit_msg = None
 
-    def _check_exceeded(self):
+    @property
+    def stream_id_uri(self):
         '''
-        _check exceeded function
-        checks if the documents have been exceeded
-        (max allowed extractions exceeded)
+        Property for retrieving the stream id uri
+        '''
+        host = self.stream_user.get_uri_context()
+        stream_id = '-'.join(self.subscription_id.split("-")[:-2])
+        return f'{host}/streams/{stream_id}'
 
-        Parameters
-        ----------
+    def _check_account_status(self):
+        '''
+        Check the account status for
+        max allowed extracts done
 
         Raises
         -------
@@ -92,45 +99,58 @@ class Listener:
         '''
         host = self.stream_user.get_uri_context()
         headers = self.stream_user.get_authentication_headers()
-        limit_msg = None
-        stream_id = '-'.join(self.subscription_id.split("-")[:-2])
-        stream_id_uri = f'{host}/streams/{stream_id}'
+        limits_uri = f'{host}/accounts/{self.stream_user.api_key}'
+        limit_response = helper.api_send_request(
+            method='GET',
+            endpoint_url=limits_uri,
+            headers=headers
+            )
+        if limit_response.status_code == 200:
+            limit_response = limit_response.json()
+            self.limit_msg = limit_response['data']['attributes']['max_allowed_extracts']
+        else:
+            raise RuntimeError(
+                '''
+                Unexpected HTTP Response from API
+                while checking for limits
+                '''
+                )
+
+    def _check_stream_status(self):
+        '''
+        Check the stream status 
+        if it has reached an
+        exceeded status at some point
+
+        Raises
+        -------
+        RuntimeError: When HTTP API Response is unexpected
+        '''
+        headers = self.stream_user.get_authentication_headers()
+        response = helper.api_send_request(
+            method='GET',
+            endpoint_url=self.stream_id_uri,
+            headers=headers
+            )
+        if response.status_code == 200:
+            response = response.json()
+            job_status = response['data']['attributes']['job_status']
+            if job_status == const.DOC_COUNT_EXCEEDED:
+                self._check_account_status()
+        else:
+            raise RuntimeError('HTTP API Response unexpected')
+
+    def _check_exceeded(self):
+        '''
+        _check exceeded function
+        checks if the documents have been exceeded
+        (max allowed extractions exceeded)
+        '''
         while self.is_consuming:
             print('Checking if extractions limit is reached')
-            response = helper.api_send_request(
-                method='GET',
-                endpoint_url=stream_id_uri,
-                headers=headers
-                )
-            if response.status_code == 200:
-                response = response.json()
-                job_status = response['data']['attributes']['job_status']
-                if job_status == const.DOC_COUNT_EXCEEDED:
-                    if "Authorization" in headers:
-                        limits_uri = f'{host}/accounts/{self.stream_user.client_id}'
-                    else:
-                        limits_uri = f'{host}/accounts/{self.stream_user.api_key}'
-
-                    limit_response = helper.api_send_request(
-                        method='GET',
-                        endpoint_url=limits_uri,
-                        headers=headers
-                        )
-                    if limit_response.status_code == 200:
-                        limit_response = limit_response.json()
-                        limit_msg = limit_response['data']['attributes']['max_allowed_extracts']
-                    else:
-                        raise RuntimeError(
-                            '''
-                            Unexpected HTTP Response from API
-                            while checking for limits
-                            '''
-                            )
-            else:
-                raise RuntimeError('HTTP API Response unexpected')
+            self._check_stream_status()
             time.sleep(const.CHECK_EXCEEDED_WAIT_SPACING)
-
-        if not limit_msg:
+        if not self.limit_msg:
             print('Job finished')
         else:
             print(
@@ -154,11 +174,58 @@ class Listener:
         self._check_exceeds_thread = Thread(target=self._check_exceeded)
         self._check_exceeds_thread.start()
 
+    def _pull_pubsub_messages(
+        self,
+        pubsub_client,
+        pubsub_request,
+        subscription_path,
+        callback,
+        ack_enabled
+        ):
+        '''
+        pull messages from pubsub
+        if any message exist for
+        the given subscription id
+        Parameters
+        ----------
+        pubsub_client :  Google Pubsub client
+            is used for consuming
+            pubsub messages
+        pubsub_request: object
+            which represents a request for
+            google pubsub
+        batch_size: int
+            the limit of the batch expected
+        '''
+        pubsub_messages = pubsub_client.pull(request=pubsub_request)
+        if pubsub_messages and pubsub_messages.received_messages:
+            for message in pubsub_messages.received_messages:
+                pubsub_message = json.loads(message.message.data)
+                print("Received news message with ID: {}".format(
+                    pubsub_message['data'][self.FIRST_OBJECT]['id'])
+                )
+                news_message = pubsub_message['data'][self.FIRST_OBJECT]['attributes']
+                callback_result = callback(
+                    news_message,
+                    self.subscription_id
+                    )
+                if ack_enabled:
+                    pubsub_client.acknowledge(
+                        subscription=subscription_path,
+                        ack_ids=[message.ack_id]
+                        )
+                self.messages_count += 1
+                if not callback_result:
+                    return
+                else:
+                    print(f'Callback returns: {callback_result}')
+
     def listen(
         self,
         callback=default_callback,
         maximum_messages=None,
-        batch_size=10
+        batch_size=10,
+        ack_enabled=False
     ):
         '''
         listen function
@@ -201,41 +268,26 @@ class Listener:
             '''
             )
 
-        messages_count = 0
+        self.messages_count = 0
         pubsub_request = {
             "subscription": subscription_path,
             "max_messages": batch_size,
             "return_immediately": True
             }
-        while maximum_messages is None or messages_count < maximum_messages:
+        while (maximum_messages is None) or (self.messages_count < maximum_messages):
             try:
                 if maximum_messages is not None:
                     batch_size = min(
                         batch_size,
-                        maximum_messages - messages_count
+                        maximum_messages - self.messages_count
                         )
-                results = pubsub_client.pull(request=pubsub_request)
-                if results and results.received_messages:
-                    for message in results.received_messages:
-                        pubsub_message = json.loads(message.message.data)
-                        print("Received news message with ID: {}".format(
-                            pubsub_message['data'][0]['id'])
-                        )
-                        news_message = pubsub_message['data'][0]['attributes']
-                        callback_result = callback(
-                            news_message,
-                            self.subscription_id
-                            )
-                        pubsub_client.acknowledge(
-                            subscription=subscription_path,
-                            ack_ids=[message.ack_id]
-                            )
-                        messages_count += 1
-                        if not callback_result:
-                            return
-                        else:
-                            print(callback_result)
-
+                    self._pull_pubsub_messages(
+                        pubsub_client,
+                        pubsub_request,
+                        subscription_path,
+                        callback,
+                        ack_enabled
+                    )
             except GoogleAPICallError as e:
                 if isinstance(e, NotFound):
                     raise e
@@ -252,12 +304,12 @@ class Listener:
                     the stream again.
                     '''
                     )
-                time.sleep(10)
+                time.sleep(const.PUBSUB_MESSAGES_WAIT_SPACING)
                 pubsub_client = self.stream_user.get_client_subscription()
 
         self.is_consuming = False
 
-    def listen_async(self, callback=default_callback):
+    def listen_async(self, callback=default_callback, ack_enabled=False):
         '''
         listen async function
         listens the current messages (News)
@@ -271,12 +323,13 @@ class Listener:
         def ack_message_and_callback(message):
             pubsub_message = json.loads(message.data)
             print("Received news message with ID: {}".format(
-                pubsub_message['data'][0]['id']
+                pubsub_message['data'][self.FIRST_OBJECT]['id']
                 )
             )
-            news_message = pubsub_message['data'][0]['attributes']
+            news_message = pubsub_message['data'][self.FIRST_OBJECT]['attributes']
             callback(news_message, self.subscription_id)
-            message.ack()
+            if ack_enabled:
+                message.ack()
 
         pubsub_client = self.stream_user.get_client_subscription()
         self.check_exceeded_thread()

@@ -1,7 +1,7 @@
 from factiva.core import const
 from factiva import helper
 
-from .listener import Listener
+from .Listener import Listener
 
 from factiva.core import StreamUser
 
@@ -157,7 +157,8 @@ class Subscription:
         self,
         callback=None,
         maximum_messages=None,
-        batch_size=None
+        batch_size=None,
+        ack_enabled=False,
     ):
         '''
         Consume messages is a listener function
@@ -173,6 +174,8 @@ class Subscription:
             number of messages
         batch_size: int
             the limit of the batch expected
+        ack_enabled :  boolean
+            is used for acknowledging a message
 
         Raises
         -------
@@ -184,15 +187,17 @@ class Subscription:
             self.listener.listen(
                 callback=callback,
                 maximum_messages=maximum_messages,
-                batch_size=batch_size
+                batch_size=batch_size,
+                ack_enabled=ack_enabled,
                 )
         else:
             self.listener.listen(
                 callback=callback,
-                maximum_messages=maximum_messages
+                maximum_messages=maximum_messages,
+                ack_enabled=ack_enabled,
                 )
 
-    def consume_async_messages(self, callback=None):
+    def consume_async_messages(self, callback=None, ack_enabled=False):
         '''
         Consume async messages is a listener function
         which consumes the current messages (News)
@@ -202,6 +207,8 @@ class Subscription:
         ----------
         callback :  function
             is used for processing a message
+        ack_enabled :  boolean
+            is used for acknowledging a message
 
         Raises
         -------
@@ -210,5 +217,6 @@ class Subscription:
         if not self.listener:
             raise RuntimeError('uninitialized listener')
         self.listener.listen_async(
-            callback=callback
+            callback=callback,
+            ack_enabled=ack_enabled,
         )
