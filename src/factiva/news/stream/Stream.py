@@ -1,6 +1,7 @@
 import pandas as pd
 
 from .Subscription import Subscription
+from .StreamResponse import StreamResponse
 
 from typing import List
 
@@ -103,14 +104,15 @@ class Stream:
     def all_subscriptions(self) -> List[str]:
         return [sub.__repr__() for sub in self.subscriptions.values()]
 
-    def get_info(self) -> pd.DataFrame:
+    def get_info(self) -> StreamResponse:
         '''
         get_info allows a user
         consult a stream by its id
 
         Returns
         -----
-        Dataframe which contains the state about the current stream
+        StreamResponse which contains all information
+            of the current sream
 
         Raises
         -------
@@ -128,18 +130,20 @@ class Stream:
         )
         if response.status_code == 200:
             response = response.json()
-            return pd.DataFrame.from_records([helper.flatten_dict(response['data'])])
+            return StreamResponse(response)
         else:
             raise RuntimeError(response.text)
 
-    def delete(self) -> pd.DataFrame:
+    def delete(self) -> StreamResponse:
         '''
         Delete allows
         to delete a stream
 
         Returns
         -----
-        The current state which is expected to be DELETED
+        StreamResponse which contains all information
+            of the current which is expected
+            to be CANCELLED
 
         Raises
         -------
@@ -160,13 +164,13 @@ class Stream:
         )
         if response.status_code == 200:
             response = response.json()
-            return pd.DataFrame.from_records([helper.flatten_dict(response['data'])])
+            return StreamResponse(response)
         elif response == 404:
             raise RuntimeError('The Stream does not exist')
         else:
             raise const.UNEXPECTED_HTTP_ERROR
 
-    def create(self) -> pd.DataFrame:
+    def create(self) -> StreamResponse:
         '''
         Create function which allows a user to create a stream subscription
         There are two available options:
@@ -175,7 +179,8 @@ class Stream:
 
         Returns
         -----
-        Dataframe which contains the state about the current stream
+        StreamResponse which contains all information
+            of the current sream
 
         Raises
         -------
@@ -188,7 +193,7 @@ class Stream:
         else:
             return self._create_by_query()
 
-    def create_subscription(self):
+    def create_subscription(self) -> str:
         '''
         Create subcription allows a user
         to create a another subscription
@@ -196,7 +201,8 @@ class Stream:
 
         Returns
         -----
-        Dataframe which contains the state about the current stream
+        String which represents
+            the new subscription id
 
         Raises
         -------
@@ -226,13 +232,14 @@ class Stream:
 
         Parameters
         ----------
-        id :  str
+        id:  str
             is the representation of a given
             subscription planned to be deleted
 
         Returns
         -----
-        Dataframe which contains the state about the current stream
+        boolean which represents if the delete
+            was successfully done
 
         Raises
         -------
@@ -370,7 +377,7 @@ class Stream:
             ack_enabled=ack_enabled,
             )
 
-    def _create_by_snapshot_id(self):
+    def _create_by_snapshot_id(self) -> StreamResponse:
         '''
         Create by snapshot id
         allows a user to create a stream subscription
@@ -378,7 +385,8 @@ class Stream:
 
         Returns
         -----
-        Dataframe which contains the state about the current stream
+        StreamResponse which contains all information
+            of the current sream
 
         Raises
         -------
@@ -401,11 +409,11 @@ class Stream:
             self.stream_id = response['data']['id']
             self.create_default_subscription(response)
 
-            return pd.DataFrame.from_records([helper.flatten_dict(response['data'])])
+            return StreamResponse(response)
         else:
             raise const.UNEXPECTED_HTTP_ERROR
 
-    def _create_by_query(self):
+    def _create_by_query(self) -> StreamResponse:
         '''
         Create by query
         allows a user to create a stream subscription
@@ -413,7 +421,8 @@ class Stream:
 
         Returns
         -----
-        Dataframe which contains the state about the current stream
+        StreamResponse which contains all information
+            of the current sream
 
         Raises
         -------
@@ -445,6 +454,6 @@ class Stream:
             self.stream_id = response['data']['id']
             self.create_default_subscription(response)
 
-            return pd.DataFrame.from_records([helper.flatten_dict(response['data'])])
+            return StreamResponse(response)
         else:
             raise const.UNEXPECTED_HTTP_ERROR

@@ -188,14 +188,22 @@ class Listener:
         the given subscription id
         Parameters
         ----------
-        pubsub_client :  Google Pubsub client
+        pubsub_client:  Google Pubsub client
             is used for consuming
             pubsub messages
         pubsub_request: object
             which represents a request for
             google pubsub
-        batch_size: int
-            the limit of the batch expected
+        subscription_path: str
+            represents the path inside pubsub
+            for the current subscription
+        callback: function
+            function executed
+            by message received
+        ack_enabled: bool
+            a listener can consume a message
+            again if ack_enabled is false,
+            otherwise it won't
         '''
         pubsub_messages = pubsub_client.pull(request=pubsub_request)
         if pubsub_messages and pubsub_messages.received_messages:
@@ -241,6 +249,9 @@ class Listener:
             number of messages
         batch_size: int
             the limit of the batch expected
+        ack_enabled: boolean
+            flag for acknowledge
+            a message
 
         Raises
         -------
@@ -317,8 +328,11 @@ class Listener:
 
         Parameters
         ----------
-        callback :  function
+        callback:  function
             is used for processing a message
+        ack_enabled: boolean
+            flag for acknowledge
+            a message
         '''
         def ack_message_and_callback(message):
             pubsub_message = json.loads(message.data)

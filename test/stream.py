@@ -65,5 +65,15 @@ def callback(message, subscription_id):
     print('Subscription ID: {}: Message: {}'.format(subscription_id, message))
     return True  # If desired return False to stop the message flow. This will unblock the process as well.
 
-stream_listener_test.consume_messages(callback=callback, subscription_id='<subscription-id>', maximum_messages=10)
-# stream_listener_test.consume_async_messages(callback=callback, subscription_id='<subscription-id>')
+stream_listener_test.consume_messages(
+    callback=callback,
+    subscription_id='<subscription-id>',
+    maximum_messages=10,
+    ack_enabled=True
+    )
+
+# stream_listener_test.consume_async_messages(
+#   callback=callback,
+#   subscription_id='<subscription-id>',
+#   ack_enabled=True
+# )
