@@ -104,7 +104,7 @@ class Taxonomy():
         
         Returns
         -------
-        List with a dictionary containing the company information
+        DataFrame containing the company information
 
         Raises
         -------
@@ -140,7 +140,7 @@ class Taxonomy():
         
         Returns
         -------
-        List with a dictionary containing the company information
+        DataFrame containing the company information
 
         Raises
         -------

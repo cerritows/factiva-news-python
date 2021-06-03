@@ -78,8 +78,8 @@ class Snapshot(BulkNewsBase):
     ):
         super().__init__(api_user=api_user, request_userinfo=request_userinfo)
 
-        self.last_explain_job = ExplainJob()
-        self.last_analytics_job = AnalyticsJob()
+        self.last_explain_job = ExplainJob(api_user=self.api_user)
+        self.last_analytics_job = AnalyticsJob(api_user=self.api_user)
 
         if query and snapshot_id:
             raise Exception("The query and snapshot_id parameters cannot be set simultaneously")
@@ -91,7 +91,7 @@ class Snapshot(BulkNewsBase):
                 self.query = SnapshotQuery(query)
             else:
                 raise ValueError("Unexpected value for the query-where clause")
-            self.last_extraction_job = ExtractionJob()
+            self.last_extraction_job = ExtractionJob(api_user=self.api_user)
 
         if snapshot_id:
             self.query = SnapshotQuery('')
