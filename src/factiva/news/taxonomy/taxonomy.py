@@ -20,6 +20,14 @@ class Taxonomy():
         Indicates if user data has to be pulled from the server. This operation
         fills account detail properties along with maximum, used and remaining
         values. It may take several seconds to complete.
+    Examples
+    --------
+    Creating a taxonomy instance providing the user key
+        >>> taxonomy_instance = Taxonomy(api_user='abcd1234abcd1234abcd1234abcd1234')
+    
+    Creating a taxonomy instance with an existing APIKeyUser instance
+        >>> my_api_user = APIKeyUser('abcd1234abcd1234abcd1234abcd1234')
+        >>> taxonomy = Taxonomy(api_user=my_api_user)
 
     '''
 
@@ -41,6 +49,17 @@ class Taxonomy():
         -------
         RuntimeError: When API request returns unexpected error
 
+        Examples
+        --------
+        This method is called with in the __init__ method, so the categories can be accessed as is.
+            >>> taxonomy = Taxonomy()
+            >>> print(taxonomy.categories)
+            ['news_subjects', 'regions', 'companies', 'industries', 'executives']
+        
+        Calling the method on its own
+            >>> taxonomy = Taxonomy()
+            >>> print(taxonomy.get_categories())
+            ['news_subjects', 'regions', 'companies', 'industries', 'executives']
         '''
         headers_dict = {
             'user-key': self.api_user.api_key
@@ -55,7 +74,7 @@ class Taxonomy():
         else:
             raise RuntimeError('API Request returned an unexpected HTTP status')
 
-    def get_codes(self, category):
+    def get_category_codes(self, category):
         '''
         Requests the codes available in the taxonomy for the specified category
         
@@ -72,6 +91,19 @@ class Taxonomy():
         -------
         ValueError: When category is not of a valid type
         RuntimeError: When API request returns unexpected error
+
+        Examples
+        --------
+        Getting the codes for the 'industries' category
+            >>> taxonomy = Taxonomy()
+            >>> industry_codes = taxonomy.get_category_codes('industries')
+            >>> print(industry_codes)
+                    code                description
+            0     i25121             Petrochemicals
+            1     i14001         Petroleum Refining
+            2       i257            Pharmaceuticals
+            3     iphrws  Pharmaceuticals Wholesale
+            4       i643     Pharmacies/Drug Stores
         '''
         helper.validate_type(category, str, 'Unexpected value: category value must be string')
         
@@ -109,6 +141,15 @@ class Taxonomy():
         Raises
         -------
         RuntimeError: When API request returns unexpected error
+
+        Examples
+        --------
+        Get the company data using the code type 'isin' and the company code 'ABCNMST00394'
+            >>> taxonomy = Taxonomy()
+            >>> company_data = taxonomy.get_single_company('isin', 'ABCNMST00394')
+            >>> print(company_data)
+                         id  fcode           common_name
+            0  ABCNMST00394  ABCYT  Systemy Company S.A. 
         '''
         helper.validate_type(code_type, str, 'Unexpected value: code_type must be str')
         helper.validate_type(company_code, str, 'Unexpected value: company must be str')
@@ -145,6 +186,17 @@ class Taxonomy():
         Raises
         -------
         RuntimeError: When API request returns unexpected error
+
+        Examples
+        --------
+        Get multiple companies data using the code type 'isin' and a company codes list
+            >>> taxonomy = Taxonomy()
+            >>> companies_data = taxonomy.get_multiple_companies('isin', ['ABC3E53433100', 'XYZ233341067', 'MN943181045'])
+            >>> print(companies_data) 
+                         id   fcode      common_name
+            0  ABC3E5343310  MCABST  M**************
+            1  XYZ233341067   AXYZC    A************
+            2  MN9431810453     MNM     M***********
         '''
         helper.validate_type(code_type, str, 'Unexpected value: code_type must be str')
         helper.validate_type(companies_codes, list, 'Unexpected value: companies must be list')
@@ -197,6 +249,24 @@ class Taxonomy():
         RuntimeError: 
             - When both company and companies arguments are set
             - When API request returns unexpected error
+
+        Examples
+        --------
+        Get data for a single company using the code type 'isin'
+            >>> taxonomy = Taxonomy()
+            >>> single_company_data = taxonomy.get_company('isin', company_code='ABCNMST00394')
+            >>> print(single_company_data)
+                         id  fcode           common_name
+            0  ABCNMST00394  ABCYT  Systemy Company S.A. 
+        
+        Get data for multiple companies sugin the code type 'isin'
+            >>> taxonomy = Taxonomy()
+            >>> multiple_companies_data = taxonomy.get_company('isin', company_codes=['ABC3E53433100', 'XYZ233341067', 'MN943181045'])
+            >>> print(multiple_companies_data)
+                         id   fcode      common_name
+            0  ABC3E5343310  MCABST  M**************
+            1  XYZ233341067   AXYZC    A************
+            2  MN9431810453     MNM     M***********
         '''
         if company_code is not None and companies_codes is not None:
             raise RuntimeError('company and companies parameters cannot be set simultaneously')

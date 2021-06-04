@@ -133,6 +133,20 @@ class Snapshot(BulkNewsBase):
         -------
         Boolean : True if the explain processing was successful. An Exception
             otherwise.
+        
+        Examples
+        --------
+        Process explain job from snapshot
+            >>> query_clause = "publication_datetime >= '2018-01-01 00:00:00' AND publication_datetime <= '2018-01-02 00:00:00' AND LOWER(language_code) = 'en'"
+            >>> my_snapshot = Snapshot(api_user='abcd1234abcd1234abcd1234abcd1234', query=query_clause)
+            >>> try:
+            ... 	my_snapshot.process_explain()
+            >>> except RuntimeError:
+            ...		print('There was an error with the API call')
+            >>>
+            >>> print(my_snapshot.last_explain_job.document_volume)
+            450483
+
         """
         return self.last_explain_job.process_job(self.query.get_explain_query())
 
@@ -171,6 +185,27 @@ class Snapshot(BulkNewsBase):
         -------
         Boolean : True if the analytics processing was successful. An Exception
             otherwise.
+        
+        Examples
+        --------
+        Process analytics job
+            >>> query_clause = "publication_datetime >= '2018-01-01 00:00:00' AND publication_datetime <= '2018-01-02 00:00:00' AND LOWER(language_code) = 'en'"
+            >>> my_snapshot = Snapshot(api_user='abcd1234abcd1234abcd1234abcd1234', query=query_clause)
+            >>> my_snapshot.process_analytics()
+            >>> print(my_snapshot.last_analytics_job.data)
+                publication_datetime   count
+            0               2018-01  950516
+            1               2018-02  929795
+            2               2018-03  998663
+            3               2018-04  935845
+            4               2018-05  894903
+            5               2018-06  876938
+            6               2018-07  867509
+            7               2018-08  793283
+            8               2018-09  858963
+            9               2018-10  957739
+            10              2018-11  917355
+            11              2018-12   38401
         """
         return self.last_analytics_job.process_job(self.query.get_analytics_query())
 
@@ -202,10 +237,19 @@ class Snapshot(BulkNewsBase):
         """
         return self.last_extraction_job.get_job_results()
 
-    def download_extraction_files(self, download_path):
+    def download_extraction_files(self, download_path=None):
         """
         Downloads the list of files listed in the Snapshot.last_extraction_job.files
-        property, and store them in a folder with the same name as the snapshot ID.
+        property, and stores them in a folder indicated by `download_path`. If no
+        `download_path` is provided, then files are stored in a folder with the 
+        same name as the snapshot ID.
+
+        Parameters
+        ----------
+        download_path: str, optional
+            String containing the file path on where to store the files. If not
+            provided, files are stored in a folder with the same name as the
+            update ID.
 
         Returns
         -------
@@ -220,35 +264,135 @@ class Snapshot(BulkNewsBase):
         its status change to `JOB_STATE_DONE`. The final status is retrieved
         and stored in the property `last_extraction_job`, which among other
         properties, contains the list of files to download. The process then
-        downloads all files to a subfolder named equal to the `short_id`
-        property. Finally, the process ends after all files are downloaded.
+        downloads all files to the specified `download_path`. If no download path
+        is provided, files are stored in a folder named equal to the `snapshot_id`
+        property. The process ends after all files are downloaded.
 
         Because the whole processing takes places in a single call, it's
         expected that the execution of this operation takes several
         minutes, or even hours.
 
+        Parameters
+        ----------
+        download_path: str, optional
+            String containing the file path on where to store the files. If not
+            provided, files are stored in a folder with the same name as the
+            update ID.
+
         Returns
         -------
         Boolean : True if the extraction processing was successful. An Exception
             otherwise.
+        
+        Examples
+        --------
+        Process extraction job. 
+            >>> query_clause = "publication_datetime >= '2018-01-01 00:00:00' AND publication_datetime <= '2018-01-02 00:00:00' AND LOWER(language_code) = 'en'"
+            >>> my_snapshot = Snapshot(api_user='abcd1234abcd1234abcd1234abcd1234', query=query_clause)
+            >>> my_snapshot.process_extraction(path='../downloads/data') 
         """
         return self.last_extraction_job.process_job(self.query.get_extraction_query(), download_path)
 
     def submit_update_job(self, update_type):
+        """
+        Submits an Update Job to the Factiva Snapshots API, using the
+        assigned user in the `api_user` and `snapshot_id` asigned to 
+        the instance and the `update_type` passed as parameter. Assigns
+        the submitted job to the `last_update_job` property.
+
+        Parameters
+        ----------
+        update_type: str
+            String containing the update type to submit a job.
+            Could be 'additions', 'replacements' or 'deletes'.
+
+        Returns
+        -------
+        Boolean : True if the submission was successful. An Exception otherwise.
+        """
         self.last_update_job = UpdateJob(update_type=update_type, snapshot_id=self.last_extraction_job.job_id)
         return self.last_update_job.submit_job()
         
     def get_update_job_results(self):
+        """
+        Obtains the Update Job results from the Factiva Snapshots API.
+        Results are stored in the `last_update_job` class property.
+
+        Raises
+        ------
+        - RuntimeError when an update job has not beed submitted.
+
+        Returns
+        -------
+        Boolean : True if the data was retrieved successfully. An Exception
+            otherwise.
+        """
         if self.last_update_job is None:
             raise RuntimeError('Update job has not been set')
         return self.last_update_job.get_job_results()
 
-    def download_update_files(self, download_path):
+    def download_update_files(self, download_path=None):
+        """
+        Downloads the list of files listed in the Snapshot.last_update_job.files
+        property, and stores them in a folder indicated by `download_path`. If no
+        `download_path` is provided, then files are stored in a folder with the 
+        same name as the update ID.
+
+        Parameters
+        ----------
+        download_path: str, optional
+            String containing the file path on where to store the files. If not
+            provided, files are stored in a folder with the same name as the
+            update ID.
+
+        Raises
+        ------
+        - RuntimeError when an update job has not beed submitted.
+
+        Returns
+        -------
+        Boolean : True if the files were correctly downloaded, False otherwise.
+        """
         if self.last_update_job is None:
             raise RuntimeError('Update job has not been set')
         return self.last_update_job.download_job_files(download_path)
 
     def process_update(self, update_type, download_path=None):
+        """
+        Submits an Update job to the Factiva Snapshots API, using the same
+        parameters used by `submit_update_job`. Then, monitors the job until
+        its status change to `JOB_STATE_DONE`. The final status is retrieved
+        and stored in the property `last_update_job`, which among other
+        properties, contains the list of files to download. The process then
+        downloads all files to the specified `download_path`. If no download path
+        is provided, files are stored in a folder named equal to the 
+        `last_update_job.job_id` property.
+
+        Because the whole processing takes places in a single call, it's
+        expected that the execution of this operation takes several
+        minutes, or even hours.
+
+        Parameters
+        ----------
+        update_type: str
+            String containing the update type to submit a job.
+            Could be 'additions', 'replacements' or 'deletes'.
+        download_path: str, optional
+            String containing the file path on where to store the files. If not
+            provided, files are stored in a folder with the same name as the
+            update ID.
+
+        Returns
+        -------
+        Boolean : True if the update processing was successful. An Exception
+            otherwise.
+        
+        Examples
+        --------
+        Process update job with type 'additions'
+            >>> previous_snapshot = Snapshot(api_user=my_user, snapshot_id='sdjjekl93j')
+            >>> previous_snapshot.process_update('additions', download_path=f'./{previous_snapshot.snapshot_id}/additions/')
+        """
         self.last_update_job = UpdateJob(update_type=update_type, snapshot_id=self.last_extraction_job.job_id)
         return self.last_update_job.process_job(path=download_path)
 
