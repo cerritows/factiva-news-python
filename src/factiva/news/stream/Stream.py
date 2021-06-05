@@ -81,8 +81,8 @@ class Stream:
         request_info=False
     ):
 
-        stream_id = self.load_stream_env_variable(stream_id, 'FACTIVA_STREAMID')
-        snapshot_id = self.load_stream_env_variable(snapshot_id, 'FACTIVA_STREAM_SNAPSHOTID')
+        stream_id = self.load_stream_env_variable(stream_id, 'FACTIVA_STREAM_ID')
+        snapshot_id = self.load_stream_env_variable(snapshot_id, 'FACTIVA_STREAM_SNAPSHOT_ID')
         query = self.load_stream_env_variable(query, 'FACTIVA_STREAM_QUERY')
         self.stream_id = stream_id
         self.snapshot_id = snapshot_id
