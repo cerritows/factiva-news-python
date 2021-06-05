@@ -42,7 +42,11 @@ class Subscription:
 
     def __init__(self, stream_id=None, id=None, subscription_type=None):
         if not stream_id:
-            raise const.UNDEFINED_STREAM_ID_ERROR
+            try:
+                stream_id = helper.load_environment_value('FACTIVA_STREAM_SUBSCRIPTION_ID')
+            except Exception:
+                raise const.UNDEFINED_STREAM_ID_ERROR
+
         self.url = f'{const.API_HOST}{const.API_STREAMS_BASEPATH}'
         self.stream_id = stream_id
         self.id = id
