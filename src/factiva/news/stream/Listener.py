@@ -73,7 +73,14 @@ class Listener:
 
     def __init__(self, subscription_id=None, stream_user=None):
         if not subscription_id:
-            raise const.UNDEFINED_SUBSCRIPTION_ERROR
+            try:
+                subscription_id = helper.load_environment_value('FACTIVA_STREAM_SUBSCRIPTION_ID')
+            except Exception:
+                raise const.UNDEFINED_SUBSCRIPTION_ERROR
+
+        if not stream_user:
+            raise ValueError('Undefined stream_user')
+
         self.stream_user = stream_user
         self.subscription_id = subscription_id
         self.is_consuming = True
