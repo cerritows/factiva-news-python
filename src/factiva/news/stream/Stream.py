@@ -80,6 +80,10 @@ class Stream:
         api_user=None,
         request_info=False
     ):
+
+        stream_id = self.load_stream_env_variable(stream_id, 'FACTIVA_STREAMID')
+        snapshot_id = self.load_stream_env_variable(snapshot_id, 'FACTIVA_STREAM_SNAPSHOTID')
+        query = self.load_stream_env_variable(query, 'FACTIVA_STREAM_QUERY')
         self.stream_id = stream_id
         self.snapshot_id = snapshot_id
         self.query = BulkNewsQuery(query)
@@ -457,3 +461,12 @@ class Stream:
             return StreamResponse(response)
         else:
             raise const.UNEXPECTED_HTTP_ERROR
+    
+    def load_stream_env_variable(self, variable, env_var):
+        if not variable:
+            try:
+                return helper.load_environment_value(f'{env_var}')
+            except Exception:
+                return variable
+        
+        return variable
